@@ -66,6 +66,10 @@
   version = "1.4.7"
   source = "https://github.com/fsnotify/fsnotify.git"
 
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.2.2"
+
 [prune]
   go-tests = true
   unused-packages = true

@@ -1,5 +1,7 @@
 ## unreleased
 
+* Add support for `bulk` volumes
+
 * Update to CSI spec v1.0.0
 
 * Forked this repository from csi-digitalocean. They have a similar API. Thanks

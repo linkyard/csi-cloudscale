@@ -174,6 +174,7 @@ func (f *fakeAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			UUID:   id,
 			Name:   v.Name,
 			SizeGB: v.SizeGB,
+			Type:   v.Type,
 		}
 
 		f.volumes[id] = vol
