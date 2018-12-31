@@ -110,12 +110,18 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	volumeName := req.Name
 
+	luksEncrypted := "false"
+	if req.Parameters[LuksEncryptedAttribute] == "true" {
+		luksEncrypted = "true"
+	}
+
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_name":             volumeName,
 		"storage_size_giga_bytes": sizeGB,
 		"method":                  "create_volume",
 		"volume_capabilities":     req.VolumeCapabilities,
 		"type":                    storageType,
+		"luks_encrypted":		   luksEncrypted,
 	})
 	ll.Info("create volume called")
 
@@ -137,8 +143,14 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			},
 		},
 		VolumeContext: map[string]string{
-			PublishInfoVolumeName: volumeName,
+			PublishInfoVolumeName:  volumeName,
+			LuksEncryptedAttribute: luksEncrypted,
 		},
+	}
+
+	if luksEncrypted == "true" {
+		csiVolume.VolumeContext[LuksCipherAttribute] = req.Parameters[LuksCipherAttribute]
+		csiVolume.VolumeContext[LuksKeySizeAttribute] = req.Parameters[LuksKeySizeAttribute]
 	}
 
 	// volume already exist, do nothing
@@ -305,7 +317,10 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	ll.Info("volume is attached")
 	return &csi.ControllerPublishVolumeResponse{
 		PublishContext: map[string]string{
-			PublishInfoVolumeName: vol.Name,
+			PublishInfoVolumeName: 		vol.Name,
+			LuksEncryptedAttribute: 	req.VolumeContext[LuksEncryptedAttribute],
+			LuksCipherAttribute: 		req.VolumeContext[LuksCipherAttribute],
+			LuksKeySizeAttribute: 		req.VolumeContext[LuksKeySizeAttribute],
 		},
 	}, nil
 }
