@@ -51,7 +51,7 @@ const (
 	PublishInfoVolumeName = DriverName + "/volume-name"
 
 	// Storage type of the volume, must be either "ssd" or "bulk"
-	StorageTypeAttribute = "type"
+	StorageTypeAttribute = DriverName + "/volume-type"
 )
 
 var (
