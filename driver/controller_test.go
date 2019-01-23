@@ -215,9 +215,9 @@ func TestLuksEncryptionAttributeIsSetInContext(t *testing.T) {
 func makeLuksCreateVolumeRequest(volumeName string, sizeGb int, volumeType string, luksEncryptionEnabled bool) *csi.CreateVolumeRequest {
 	request := makeCreateVolumeRequest(volumeName, sizeGb, volumeType)
 	if luksEncryptionEnabled {
-		request.Parameters["luksEncrypted"] = "true"
+		request.Parameters[LuksEncryptedAttribute] = "true"
 	} else {
-		request.Parameters["luksEncrypted"] = "false"
+		request.Parameters[LuksEncryptedAttribute] = "false"
 	}
 	return request
 }
@@ -239,7 +239,7 @@ func makeCreateVolumeRequest(volumeName string, sizeGb int, volumeType string) *
 			RequiredBytes: int64(sizeGb) * GB,
 		},
 		Parameters: map[string]string{
-			"type": volumeType,
+			"csi.cloudscale.ch/volume-type": volumeType,
 		},
 	}
 }
