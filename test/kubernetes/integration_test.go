@@ -848,7 +848,7 @@ func ExecCommand(podNamespace string, podName string, command ...string) (string
 		return "", fmt.Errorf("could not get pod info: %v", err)
 	}
 
-	// iterate through all containers looking for the one running PostgreSQL.
+	// iterate through all containers looking for the one running the csi plugin
 	targetContainer := -1
 	for i, cr := range pod.Spec.Containers {
 		if cr.Name == "csi-cloudscale-plugin" {
