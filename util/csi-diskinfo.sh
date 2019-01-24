@@ -42,7 +42,7 @@ for device in ${devices}; do
     echo "     \"deviceName\": \"${device}\","
     echo "     \"deviceSize\": ${deviceSize},"
     echo "     \"filesystem\": \"${fs}\","
-    echo "     \"deviceSource\": \"${deviceSource}\","
+    echo "     \"deviceSource\": \"${deviceSource}\""
     if [ "${i}" = "${deviceCount}" ]; then
       echo "  }"
     else
