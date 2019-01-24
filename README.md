@@ -1,50 +1,76 @@
-# csi-cloudscale [![Build Status](https://travis-ci.org/cloudscale-ch/csi-cloudscale.svg?branch=master)](https://travis-ci.org/cloudscale-ch/csi-cloudscale)
-A Container Storage Interface ([CSI](https://github.com/container-storage-interface/spec)) Driver for cloudscale.ch volumes. The CSI plugin allows you to use cloudscale.ch volumes with your preferred Container Orchestrator.
+# csi-cloudscale 
+A Container Storage Interface ([CSI](https://github.com/container-storage-interface/spec)) driver 
+for cloudscale.ch volumes. The CSI plugin allows you to use cloudscale.ch volumes with your 
+preferred Container Orchestrator.
 
-The cloudscale.ch CSI plugin is mostly tested on Kubernetes. Theoretically it
-should also work on other Container Orchestrator's, such as Mesos or
-Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
+The cloudscale.ch CSI plugin is mostly tested on kubernetes. Theoretically, it should also work with
+other container orchestrators.
+
+This fork is ahead of cloudscale.ch's CSI driver and adds the following features:
+
+* Support for CSI spec v1.0.0 (PR [#4](https://github.com/cloudscale-ch/csi-cloudscale/pull/4) submitted)
+* Support for `bulk` volumes (PR pending)
+* Change ext4 formatting behaviour to not reserve any diskspace for root (PR pending)
+* Support for luks encrypted volumes (PR pending)
 
 ## Releases
 
 The cloudscale.ch CSI plugin follows [semantic versioning](https://semver.org/).
-The current version is: **`v0.2.0`**. The project is still under active development and may not be 
-production ready.
+The current version of linkyard's fork is: **`1.0.0`**. 
 
-* Bug fixes will be released as a `PATCH` update.
-* New features (such as CSI spec bumps) will be released as a `MINOR` update.
-* Significant breaking changes makes a `MAJOR` update.
+## Volume parameters
+
+This plugin supports the following volume parameters (in case of kubernetes: parameters on the 
+`StorageClass` object):
+
+* `csi.cloudscale.ch/volume-type`: `ssd` or `bulk`; defaults to `ssd` if not set
+
+For LUKS encryption:
+
+* `csi.cloudscale.ch/luks-encrypted`: set to the string `"true"` if the volume should be encrypted
+  with LUKS
+* `csi.cloudscale.ch/luks-cipher`: cipher to use; must be supported by the kernel and luks, we
+  suggest `aes-xts-plain64`
+* `csi.cloudscale.ch/luks-key-size`: key-size to use; we suggest `512` for `aes-xts-plain64`
+
+For LUKS encrypted volumes, a secret that contains the LUKS key needs to be referenced through
+the `csiNodeStageSecretName` and `csiNodeStageSecretNamespace` parameter. See the included 
+`StorageClass` definitions for examples.
 
 ## Installing to Kubernetes
 
 **Requirements:**
 
-* Kubernetes v1.13.0 minimum 
+* Kubernetes v1.13.x
 * `--allow-privileged` flag must be set to true for both the API server and the kubelet
 * (if you use Docker) the Docker daemon of the cluster nodes must allow shared mounts
 
+To install the CSI plugin on kubernetes, the following steps are necessary:
 
-### [Rancher](https://rancher.com/) users:
+* Create a secret with your cloudscale.ch API access token
+* Deploy the CSI plugin
+* Use on of the pre-defined storage-classes or create you own storage classes
 
-`Mount Propagation` is [disabled by
-default](https://github.com/rancher/rke/issues/765) on latest `v2.0.6` version
-of Rancher, which prevents the `csi-cloudscale` to function correctly. To fix
-the issue temporary, make sure to add the following settings to your cluster
-configuration YAML file:
+### Pre-defined storage classes
 
-```
-services:
-  kube-api:
-    extra_args:
-      feature-gates: MountPropagation=true
+The default deployment bundled in the `deploy/kubernetes/releases` folder includes three storage
+classes:
 
-  kubelet:
-    extra_args:
-      feature-gates: MountPropagation=true
-```
+* `cloudscale-volume-ssd` - the default storage class; uses an ssd volume, no luks encryption
+* `cloudscale-volume-bulk` - uses a bulk volume, no luks encryption
+* `cloudscale-volume-ssd-luks` - uses an ssd volume that will be encrypyted with luks; a luks-key
+  must be supplied
+* `cloudscale-volume-bulk-luks` - uses a bulk volume that will be encrypyted with luks; a luks-key
+  must be supplied
 
+To use one of the shipped luks storage classes, you need to create a secret named 
+`${pvc.name}-luks-key` in the same namespace as the persistent volume claim. The secret must
+contain an element called `luksKey` that will be used as the luks encryption key.
 
-#### 1. Create a secret with your cloudscale.ch API Access Token:
+Example: If you create a persistent volume claim with the name `my-pvc`, you need to create a
+secret `my-pvc-luks-key`. 
+
+### 1. Create a secret with your cloudscale.ch API Access Token:
 
 Replace the placeholder string starting with `a05...` with your own secret and
 save it as `secret.yml`: 
@@ -66,24 +92,15 @@ $ kubectl create -f ./secret.yml
 secret "cloudscale" created
 ```
 
-You should now see the cloudscale secret in the `kube-system` namespace along with other secrets
+### 2. Deploy the CSI plugin and sidecars:
+
+Before you continue, be sure to checkout to a 
+[tagged release](https://github.com/linkyard/csi-cloudscale/releases). 
+Always use the [latest stable version](https://github.com/linkyard/csi-cloudscale/releases/latest) 
+For example, to use the latest stable version (`1.0.0`) you can execute the following command:
 
 ```
-$ kubectl -n kube-system get secrets
-NAME                  TYPE                                  DATA      AGE
-default-token-jskxx   kubernetes.io/service-account-token   3         18h
-cloudscale            Opaque                                1         18h
-```
-
-#### 2. Deploy the CSI plugin and sidecars:
-
-Before you continue, be sure to checkout to a [tagged
-release](https://github.com/cloudscale-ch/csi-cloudscale/releases). 
-Always use the [latest stable version](https://github.com/cloudscale-ch/csi-cloudscale/releases/latest) 
-For example, to use the latest stable version (`v0.2.0`) you can execute the following command:
-
-```
-$ kubectl apply -f https://raw.githubusercontent.com/cloudscale-ch/csi-cloudscale/master/deploy/kubernetes/releases/csi-cloudscale-v0.2.0.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/linkyard/csi-cloudscale/master/deploy/kubernetes/releases/csi-cloudscale-linkyard-v1.0.0.yaml
 ```
 
 This file will be always updated to point to the latest stable release.
@@ -91,17 +108,12 @@ This file will be always updated to point to the latest stable release.
 There are also `dev` images available:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/cloudscale-ch/csi-cloudscale/master/deploy/kubernetes/releases/csi-cloudscale-dev.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/linkyard/csi-cloudscale/master/deploy/kubernetes/releases/csi-cloudscale-linkyard-dev.yaml
 ```
 
-A new storage class will be created with the name `cloudscale-volume-ssd` which is
-responsible for dynamic provisioning. This is set to **"default"** for dynamic
-provisioning. If you're using multiple storage classes you might want to remove
-the annotation from the `csi-storageclass.yaml` and re-deploy it. This is
-based on the [recommended mechanism](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md#recommended-mechanism-for-deploying-csi-drivers-on-kubernetes) of deploying CSI drivers on Kubernetes
-
-*Note that the deployment proposal to Kubernetes is still a work in progress and not all of the written
-features are implemented. When in doubt, open an issue or ask #sig-storage in [Kubernetes Slack](http://slack.k8s.io)*
+The storage classes `cloudscale-volume-ssd`, `cloudscale-volume-bulk`, `cloudscale-volume-ssd-luks`
+and `cloudscale-volume-bulk-luks` will be created. The storage-class `cloudscale-volume-ssd` will
+be the **"default"** for dynamic provisioning. 
 
 #### 3. Test and verify:
 
@@ -187,53 +199,11 @@ After making your changes, run the unit tests:
 $ make test
 ```
 
-If you want to test your changes, create a new image with the version set to `dev`:
-
-```
-apt install docker.io
-# At this point you probably need to add your user to the docker group
-docker login --username=cloudscalech --email=hello@cloudscale.ch
-$ VERSION=dev make publish
-```
-
-This will create a binary with version `dev` and docker image pushed to
-`cloudscalech/cloudscale-csi-plugin:dev`
-
-
 To run the integration tests run the following:
 
 ```
 $ KUBECONFIG=$(pwd)/kubeconfig make test-integration
 ```
-
-
-### Release a new version
-
-To release a new version bump first the version:
-
-```
-$ make bump-version
-```
-
-Make sure everything looks good. Create a new branch with all changes:
-
-```
-$ git checkout -b new-release
-$ git add .
-$ git push origin
-```
-
-After it's merged to master, [create a new Github
-release](https://github.com/cloudscale-ch/csi-cloudscale/releases/new) from
-master with the version `v0.2.0` and then publish a new docker build:
-
-```
-$ git checkout master
-$ make publish
-```
-
-This will create a binary with version `v0.2.0` and docker image pushed to
-`cloudscalech/cloudscale-csi-plugin:v0.2.0`
 
 ## Contributing
 

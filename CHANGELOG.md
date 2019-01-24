@@ -1,11 +1,10 @@
-## unreleased
+## linkyard 1.0.0 - 2019-01-24
+
+* Add support for luks-encrypted volumes
 
 * Add support for `bulk` volumes
 
 * Update to CSI spec v1.0.0
-
-* Forked this repository from csi-digitalocean. They have a similar API. Thanks
-  a lot to DigitalOcean - mostly Fatih Arslan - for his work.
   
 ### Important
  
