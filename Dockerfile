@@ -24,6 +24,7 @@ COPY cmd /go/src/github.com/cloudscale-ch/csi-cloudscale/cmd
 COPY driver /go/src/github.com/cloudscale-ch/csi-cloudscale/driver
 COPY vendor /go/src/github.com/cloudscale-ch/csi-cloudscale/vendor
 COPY Makefile /go/src/github.com/cloudscale-ch/csi-cloudscale/
+COPY util /go/src/github.com/cloudscale-ch/csi-cloudscale/util
 
 WORKDIR /go/src/github.com/cloudscale-ch/csi-cloudscale
 
@@ -35,5 +36,6 @@ FROM alpine:3.7
 RUN apk add --no-cache ca-certificates e2fsprogs findmnt cryptsetup
 
 COPY --from=builder /go/src/github.com/cloudscale-ch/csi-cloudscale/cmd/cloudscale-csi-plugin/cloudscale-csi-plugin /bin/
+COPY util/csi-diskinfo.sh /bin/csi-diskinfo.sh
 
 ENTRYPOINT ["/bin/cloudscale-csi-plugin"]
